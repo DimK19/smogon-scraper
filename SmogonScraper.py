@@ -24,6 +24,7 @@ class SmogonScraper():
             innerReq = requests.get(self.allLinksDict[d])
             innerSoup = BS(innerReq.text, "html.parser")
             for format in innerSoup.find_all('a', href = re.compile(r"^.*vgc[0-9]{4}.*-0.txt")):
+                # the regular expression matches with all vgc formats by smogon naming convention
                 formatURL = self.allLinksDict[d] + format.text
                 self.vgcDict.update({(d, format.text) : formatURL})
                 
@@ -41,6 +42,7 @@ class SmogonScraper():
         self._readGameCount()
         return self.allGames
 
+# For testing purposes
 def main():
     ss = SmogonScraper()
     ss.getRawData()
