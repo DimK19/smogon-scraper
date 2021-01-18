@@ -28,6 +28,22 @@ class SmogonScraper():
                 formatURL = self.allLinksDict[d] + format.text
                 self.vgcDict.update({(d, format.text) : formatURL})
                 
+    ## How to continue
+    ## Format dictionary instead of vgcDict
+    ## call the method that returns the data to be plotted with a parameter defining the format (ou, vgc, etc)
+    ## make the necessary changes and plot
+    
+    def _separateOU(self):
+        tempd = {}
+        for d in self.allLinksDict:
+            innerReq = requests.get(self.allLinksDict[d])
+            innerSoup = BS(innerReq.text, "html.parser")
+            for format in innerSoup.find_all('a', href = re.compile(r"^(gen[0-9]*)*ou.*-0.txt")):
+                formatURL = self.allLinksDict[d] + format.text
+                tempd.update({d + '_' + format.text : formatURL})
+        SmogonScraper._saveDictionaryToFile("oudata.txt", tempd)       
+         
+                
     def _readGameCount(self):
         for k in self.vgcDict:
             lastReq = requests.get(self.vgcDict[k])
