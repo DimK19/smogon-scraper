@@ -1,6 +1,10 @@
 ## TODO 
 ## Flush dictionaries after use
 ## Keys have not been chosen very wisely
+## Battle spot / stadium doubles format
+## Try-catch for files and internet access
+## Update method (if data file already exists)
+## Now do it all in flask
 
 import requests
 import re
@@ -16,9 +20,24 @@ class SmogonScraper():
         self.formatDict = {}
         self.allGames = {}
 
-    def _collectAllLinks(self):
+    def _collectAllLinks(self, lastRecordedDate = None):
+        startDate = None
+        ## lrd is in the format "YYYY-MM"
+        ## "calculate" next month:
+        if(lastRecordedDate):
+            if(lastRecordedDate[-2:] == "12"): ## if last month is December
+                startDate = str(int(lastRecordedDate[:4]) + 1) + "-01"
+            else: startDate = lastRecordedDate[:5] + str(int(lastRecordedDate[-2:]) + 1)
+       
+        found = False ## eeeeeeewwwww
         for link in self.soup.find_all('a'):
             if(link.text == "../"): continue
+            flag = True ## eewww
+            if(startDate and not found):
+                if(link.text != startDate + '/'):
+                    flag = False
+            if(not flag): continue
+            found = True
             date = link.text.rstrip('/')
             monthURL = self.sourceURL + link.get("href")
             self.allLinksDict.update({date : monthURL})
@@ -40,7 +59,7 @@ class SmogonScraper():
                 # the regular expression matches with all ou formats by smogon naming convention
                 formatURL = self.allLinksDict[d] + format.text
                 self.formatDict.update({(d, format.text) : formatURL})       
-                
+
     def _readGameCount(self):
         for k in self.formatDict:
             lastReq = requests.get(self.formatDict[k])
@@ -49,20 +68,21 @@ class SmogonScraper():
             games = int(games[0])
             self.allGames.update({k[0] + '_' + k[1][:-6] : games}) # json does not accept dictionary with tuple keys
      
-    def getRawData(self, format):
-        self._collectAllLinks()
+    def getRawData(self, format, lastRecordedDate = None):
+        self._collectAllLinks(lastRecordedDate)
         if(format.lower() == "vgc"): self._separateVGC()
         elif(format.lower() == "ou"): self._separateOU()
         else:
             print("Error: Invalid format")
             return
         self._readGameCount()
+                
         return self.allGames
         
 
 # For testing purposes
 def main():
     ss = SmogonScraper()
-    with open("test.txt", 'w') as f: json.dump(ss.getRawData("ou"), f) 
+    with open("test.txt", 'w') as f: json.dump(ss.getRawData("ou", "2020-11"), f) 
         
 if(__name__ == "__main__"): main()

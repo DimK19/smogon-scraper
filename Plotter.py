@@ -1,10 +1,13 @@
-import SmogonScraper
+## TODO
+## Keep track of last update date, so thst you dont pull all the data with every refresh each time
+
+#import SmogonScraper
 import matplotlib.pyplot as plt
 import json
 
-ss = SmogonScraper.SmogonScraper()
+#ss = SmogonScraper.SmogonScraper()
 
-with open("smogon_data.txt", 'w') as f: json.dump(ss.getRawVGCData("vgc"), f)
+#with open("smogon_data.txt", 'w') as f: json.dump(ss.getRawVGCData("vgc"), f)
 with open("smogon_data.txt", 'r') as f: data = json.load(f)  
 
 byDateOnly  = {} # ignore different sub-formats
