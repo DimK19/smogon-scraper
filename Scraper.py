@@ -1,10 +1,9 @@
 ## TODO 
-## Flush dictionaries after use
-## Keys have not been chosen very wisely
-## Battle spot / stadium doubles format
-## Try-catch for files and internet access
-## Update method (if data file already exists)
-## Now do it all in tkinter
+## 2 Flush dictionaries after use
+## 4 Keys have not been chosen very wisely
+## 5 Battle spot / stadium doubles format
+## 3 Try-catch for files and internet access https://stackoverflow.com/questions/16511337/correct-way-to-try-except-using-python-requests-module
+## 6 https://stackoverflow.com/questions/10606133/sending-user-agent-using-requests-library-in-python
 
 import requests
 import re
@@ -12,9 +11,11 @@ import json
 from bs4 import BeautifulSoup as BS
 
 class Scraper():
-    def __init__(self):
-        self.sourceURL = "https://www.smogon.com/stats/"
-        self.req = requests.get(self.sourceURL)
+
+    sourceURL = "https://www.smogon.com/stats/"
+
+    def __init__(self):     
+        self.req = requests.get(Scraper.sourceURL)
         self.soup = BS(self.req.text, "html.parser")
         self.allLinksDict = {}
         self.formatDict = {}
@@ -30,14 +31,15 @@ class Scraper():
                 startDate = str(int(lastRecordedDate[:4]) + 1) + "-01"
             else: startDate = lastRecordedDate[:5] + str(int(lastRecordedDate[-2:]) + 1)
        
-        found = False ## eeeeeeewwwww
+        found = False ## eewww
         for link in self.soup.find_all('a'):
             if(link.text == "../"): continue
-            flag = True ## eewww
+            flag = True ## eeeeeeewwwww
             if(startDate and not found):
                 if(link.text != startDate + '/'):
                     flag = False
             if(not flag): continue
+            if(link.text[-3] == 'H'): continue ## very dumb, prevents double counting of some months that are divided in halves
             found = True
             date = link.text.rstrip('/')
             monthURL = self.sourceURL + link.get("href")
@@ -87,6 +89,6 @@ class Scraper():
 # For testing purposes
 def main():
     scrape = Scraper()
-    with open("test.txt", 'w') as f: json.dump(ss.getRawData("ou", "2020-11"), f) 
+    with open("test.txt", 'w') as f: json.dump(scrape.getRawData("ou", "2020-11"), f) 
         
 if(__name__ == "__main__"): main()
