@@ -21,19 +21,25 @@ class GUI():
         
     def _createWidgets(self):
         ## create button frame
-        self.bf = tk.Frame(self.f)
-        self.bf.pack()
+        self.buttonFrame = tk.Frame(self.f)
+        self.buttonFrame.pack()
         
-        self.vgcButton = tk.Button(self.bf, text = " VGC Games ", font = self.topFont, command = lambda: self.plotter.getDiagram("vgc"), width = 10)
-        self.vgcButton.pack(side = "left", fill='x')
+        self.vgcButton = tk.Button(self.buttonFrame, text = " VGC Games ", font = self.topFont, command = lambda: self.plotter.getDiagram("vgc"), width = 10)
+        self.vgcButton.pack(side = "top", fill='x')
         
-        self.ouButton = tk.Button(self.bf, text = " OU Games ", font = self.topFont, command = lambda: self.plotter.getDiagram("ou"), width = 10)
-        self.ouButton.pack(side = "left", fill='x')
+        self.ouButton = tk.Button(self.buttonFrame, text = " OU Games ", font = self.topFont, command = lambda: self.plotter.getDiagram("ou"), width = 10)
+        self.ouButton.pack(side = "top", fill='x')
         
-        self.cf = tk.Frame(self.f)
-        self.cf.pack()
-        self.canvas = tk.Canvas(self.cf, width = self.boardWidth, height = self.boardHeight)
+        self.infoButton = tk.Button(self.buttonFrame, text = " Information ", font = self.topFont, command = lambda: self._showInfo(), width = 10)
+        self.infoButton.pack(side = "bottom", fill='x')
+        
+        self.canvasFrame = tk.Frame(self.f)
+        self.canvasFrame.pack()
+        self.canvas = tk.Canvas(self.canvasFrame, width = self.boardWidth, height = self.boardHeight)
         self.canvas.pack()
+      
+    def _showInfo(self):
+        pass
 
 def main():
     root = tk.Tk()

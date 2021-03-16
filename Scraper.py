@@ -1,7 +1,4 @@
-## TODO 
-## 2 Flush dictionaries after use
-## 4 Keys have not been chosen very wisely
-## 5 Battle spot / stadium doubles format
+## TODO
 ## 3 Try-catch for files and internet access https://stackoverflow.com/questions/16511337/correct-way-to-try-except-using-python-requests-module
 ## 6 https://stackoverflow.com/questions/10606133/sending-user-agent-using-requests-library-in-python
 
@@ -9,6 +6,7 @@ import requests
 import re
 import json
 from bs4 import BeautifulSoup as BS
+import datetime
 
 class Scraper():
 
@@ -17,12 +15,10 @@ class Scraper():
     def __init__(self):     
         self.req = requests.get(Scraper.sourceURL)
         self.soup = BS(self.req.text, "html.parser")
-        self.allLinksDict = {}
-        self.formatDict = {}
         self.allGames = {}
 
-    ## after this method returns, allLinksDict contains the links for all the previously unrecorded months
-    def _collectAllLinks(self, lastRecordedDate = None):
+    def _collectAllLinks(self, format, lastRecordedDate = None):
+        self.allGames.clear()
         startDate = None
         ## lrd is in the format "YYYY-MM"
         ## "calculate" next month:
@@ -30,65 +26,59 @@ class Scraper():
             if(lastRecordedDate[-2:] == "12"): ## if last month is December
                 startDate = str(int(lastRecordedDate[:4]) + 1) + "-01"
             else: startDate = lastRecordedDate[:5] + str(int(lastRecordedDate[-2:]) + 1)
-       
-        found = False ## eewww
-        for link in self.soup.find_all('a'):
-            if(link.text == "../"): continue
-            flag = True ## eeeeeeewwwww
-            if(startDate and not found):
-                if(link.text != startDate + '/'):
-                    flag = False
-            if(not flag): continue
-            if(link.text[-3] == 'H'): continue ## very dumb, prevents double counting of some months that are divided in halves
-            found = True
-            date = link.text.rstrip('/')
-            monthURL = self.sourceURL + link.get("href")
-            self.allLinksDict.update({date : monthURL})
         
-    ## for each month, get the links for the vgc formats only    
-    def _separateVGC(self):
-        for d in self.allLinksDict:
-            innerReq = requests.get(self.allLinksDict[d])
-            innerSoup = BS(innerReq.text, "html.parser")
-            for format in innerSoup.find_all('a', href = re.compile(r"^.*vgc[0-9]{4}.*-0.txt")):
-                # the regular expression matches with all vgc formats by smogon naming convention
-                formatURL = self.allLinksDict[d] + format.text
-                self.formatDict.update({(d, format.text) : formatURL})
+        for link in self.soup.find_all('a'):
+            if(link.text == "../" or link.text[7] != '/'): continue
+            # prevents double counting of some months that are divided in halves
+            month = link.text.rstrip('/') # remove trailing '/'
+            
+            if(startDate):
+                if(datetime.datetime.strptime(month, "%Y-%m").date() < datetime.datetime.strptime(startDate, "%Y-%m").date()): continue
                 
-    def _separateOU(self):
-        for d in self.allLinksDict:
-            innerReq = requests.get(self.allLinksDict[d])
-            innerSoup = BS(innerReq.text, "html.parser")
-            for format in innerSoup.find_all('a', href = re.compile(r"^(gen[0-9]*)*ou.*-0.txt")):
-                # the regular expression matches with all ou formats by smogon naming convention
-                formatURL = self.allLinksDict[d] + format.text
-                self.formatDict.update({(d, format.text) : formatURL})       
-    
-    ## for each format link, opens the txt and reads the first line, which contains 
+            monthURL = Scraper.sourceURL + link.get("href")
+            gamesPlayed = self._getGameCount(monthURL, format)
+            self.allGames.update({month : gamesPlayed})
+           
+    ## for each month link, selects the pre-determined format
+    def _getGameCount(self, monthURL, format):
+        regex = ""
+        ans = 0
+        if(format == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0.txt$|^(.*)battle(spot|stadium)doubles(.*)-0.txt$"
+        ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
+        ## Notice that there must not be whitespace around the disjunction operator (or any other)
+        elif(format == "ou"): regex = r"^(gen[0-9]*)*ou.*-0.txt"
+        # this one matches with all ou formats by smogon naming convention
+        
+        innerReq = requests.get(monthURL)
+        innerSoup = BS(innerReq.text, "html.parser")
+        for format in innerSoup.find_all('a', href = re.compile(regex)):
+            formatURL = monthURL + format.text
+            ans += self._readFormatFile(formatURL)       
+        
+        return ans
+        
+    ## opens the txt and reads the first line, which contains 
     ## some text and a single number, the total amount of games played that month
-    def _readGameCount(self):
-        for k in self.formatDict:
-            lastReq = requests.get(self.formatDict[k])
-            firstLine = lastReq.text.split('\n')[0]
-            games = re.findall(r"[0-9]+", firstLine)
-            games = int(games[0])
-            self.allGames.update({k[0] + '_' + k[1][:-6] : games}) # json does not accept dictionary with tuple keys
+    def _readFormatFile(self, formatURL):
+        lastReq = requests.get(formatURL)
+        firstLine = lastReq.text.split('\n')[0]
+        games = re.findall(r"[0-9]+", firstLine) ## only accept numbers
+        games = int(games[0])
+        return games
      
-    def getRawData(self, format, lastRecordedDate = None):
-        self._collectAllLinks(lastRecordedDate)
-        if(format.lower() == "vgc"): self._separateVGC()
-        elif(format.lower() == "ou"): self._separateOU()
-        else:
+    def getData(self, format, lastRecordedDate = None):   
+        if(format.lower() != "vgc" and format.lower() != "ou"):
             print("Error: Invalid format")
             return
-        self._readGameCount()
-                
+        
+        self._collectAllLinks(format, lastRecordedDate)
         return self.allGames
         
 
 # For testing purposes
 def main():
     scrape = Scraper()
-    with open("test.txt", 'w') as f: json.dump(scrape.getRawData("ou", "2020-11"), f) 
+    # with open("test.txt", 'w') as f: json.dump(scrape.getData("ou", "2020-11"), f) 
+    with open("test2.txt", 'w') as f: json.dump(scrape.getData("vgc"), f) 
         
 if(__name__ == "__main__"): main()
