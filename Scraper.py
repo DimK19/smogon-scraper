@@ -1,6 +1,11 @@
+## Try-catch for requests https://stackoverflow.com/questions/16511337/correct-way-to-try-except-using-python-requests-module
+## For user agent:
+## https://stackoverflow.com/questions/10606133/sending-user-agent-using-requests-library-in-python
+## https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+
 ## TODO
-## 3 Try-catch for files and internet access https://stackoverflow.com/questions/16511337/correct-way-to-try-except-using-python-requests-module
-## 6 https://stackoverflow.com/questions/10606133/sending-user-agent-using-requests-library-in-python
+## add ubers, uu, dou
+## 2017-01 pre-bank and post-bank ou
 
 import requests
 import re
@@ -11,10 +16,14 @@ import datetime
 class Scraper():
 
     sourceURL = "https://www.smogon.com/stats/"
+    headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"}
 
-    def __init__(self):     
-        self.req = requests.get(Scraper.sourceURL)
-        self.soup = BS(self.req.text, "html.parser")
+    def __init__(self):             
+        try:
+            req = requests.get(Scraper.sourceURL, headers = Scraper.headers)
+        except requests.exceptions.RequestException as e: 
+            raise SystemExit(e)
+        self.soup = BS(req.text, "html.parser")
         self.allGames = {}
 
     def _collectAllLinks(self, format, lastRecordedDate = None):
@@ -34,10 +43,12 @@ class Scraper():
             
             if(startDate):
                 if(datetime.datetime.strptime(month, "%Y-%m").date() < datetime.datetime.strptime(startDate, "%Y-%m").date()): continue
+                ## reduces the amount of times that getGameCount is called, thus reducing requests
                 
             monthURL = Scraper.sourceURL + link.get("href")
             gamesPlayed = self._getGameCount(monthURL, format)
             self.allGames.update({month : gamesPlayed})
+            ## print(month, ' ', gamesPlayed) # debug
            
     ## for each month link, selects the pre-determined format
     def _getGameCount(self, monthURL, format):
@@ -49,7 +60,11 @@ class Scraper():
         elif(format == "ou"): regex = r"^(gen[0-9]*)*ou.*-0.txt"
         # this one matches with all ou formats by smogon naming convention
         
-        innerReq = requests.get(monthURL)
+        try:
+            innerReq = requests.get(monthURL, headers = Scraper.headers)
+        except requests.exceptions.RequestException as e: 
+            raise SystemExit(e)
+        
         innerSoup = BS(innerReq.text, "html.parser")
         for format in innerSoup.find_all('a', href = re.compile(regex)):
             formatURL = monthURL + format.text
@@ -59,8 +74,11 @@ class Scraper():
         
     ## opens the txt and reads the first line, which contains 
     ## some text and a single number, the total amount of games played that month
-    def _readFormatFile(self, formatURL):
-        lastReq = requests.get(formatURL)
+    def _readFormatFile(self, formatURL):       
+        try:
+            lastReq = requests.get(formatURL, headers = Scraper.headers)
+        except requests.exceptions.RequestException as e: 
+            raise SystemExit(e)
         firstLine = lastReq.text.split('\n')[0]
         games = re.findall(r"[0-9]+", firstLine) ## only accept numbers
         games = int(games[0])
