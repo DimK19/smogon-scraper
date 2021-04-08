@@ -15,7 +15,7 @@ class Util(): ## how they are all connected
         self.plotter = Plotter.Plotter() 
     
     def getDiagram(self, format):
-        ## format is a string (currently either "vgc" or "ou")
+        ## format is a string (currently either "vgc", "ou", "uu", or "ubers")
         filename = format.lower() + "_smogon_data.json"
         try:
             if(os.path.isfile(filename)):
@@ -57,6 +57,12 @@ class GUI():
         
         self.ouButton = tk.Button(self.buttonFrame, text = " OU Games ", font = self.topFont, command = lambda: self.util.getDiagram("ou"), width = 10)
         self.ouButton.pack(side = "top", fill='x')
+        
+        self.uuButton = tk.Button(self.buttonFrame, text = " UU Games ", font = self.topFont, command = lambda: self.util.getDiagram("uu"), width = 10)
+        self.uuButton.pack(side = "top", fill='x')
+        
+        self.uberButton = tk.Button(self.buttonFrame, text = " Uber Games ", font = self.topFont, command = lambda: self.util.getDiagram("ubers"), width = 10)
+        self.uberButton.pack(side = "top", fill='x')
         
         self.infoButton = tk.Button(self.buttonFrame, text = " Information ", font = self.topFont, command = lambda: self._showInfo(), width = 10)
         self.infoButton.pack(side = "bottom", fill='x')

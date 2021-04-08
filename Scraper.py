@@ -57,8 +57,8 @@ class Scraper():
         if(format == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0.txt$|^(.*)battle(spot|stadium)doubles(.*)-0.txt$"
         ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
         ## Notice that there must not be whitespace around the disjunction operator (or any other)
-        elif(format == "ou"): regex = r"^(gen[0-9]*)*ou.*-0.txt"
-        # this one matches with all ou formats by smogon naming convention
+        elif(format == "ou" or format == "uu" or format == "ubers"): regex = r"^(gen[0-9]*)*" + format + ".*-0.txt"
+        # this one matches with all ou / uu / uber formats by smogon naming convention
         
         try:
             innerReq = requests.get(monthURL, headers = Scraper.headers)
@@ -85,7 +85,7 @@ class Scraper():
         return games
      
     def getData(self, format, lastRecordedDate = None):   
-        if(format.lower() != "vgc" and format.lower() != "ou"):
+        if(format.lower() not in ["vgc", "ou", "uu", "ubers"]):
             print("Error: Invalid format")
             return
         

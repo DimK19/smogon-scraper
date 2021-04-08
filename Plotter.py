@@ -1,13 +1,11 @@
 ## TODO
 ## 1 Keep track of last update date, so thst you dont pull all the data with every refresh each time ALMOST DONE
-## Plotter should only plot
 
 import matplotlib.pyplot as plt
 
 class Plotter():
     def plot(self, data):
-
-        
+ 
         '''
         byDateOnly  = {} # ignore different sub-formats
         for i in data:
@@ -27,5 +25,4 @@ class Plotter():
 def main():
     Plotter().plot("vgc")
     
-
 if(__name__  == "__main__"): main()
