@@ -8,6 +8,9 @@ import Scraper
 import Plotter
 import os.path
 import json
+import webbrowser
+
+repositoryLink = "https://github.com/DimK19/SmogonScraper"
 
 class Util(): ## how they are all connected
     def __init__(self):
@@ -38,12 +41,12 @@ class GUI():
     def __init__(self, root):
         self.root = root
         root.title("Smogon Scraper Application")
-        root.resizable(width = "false", height = "false") ## ??
-        self.boardWidth = 320
-        self.boardHeight = 200
+        root.resizable(width = False, height = False) ## does not allow adjusting dimensions of window
+        root.geometry("320x200")
         self.topFont = "Arial 15"
         self.f = tk.Frame(root) ## create root frame
-        self.f.pack(expand = True, fill = "both") ## don't remember what this does
+        self.f.pack(expand = False, fill = "both") ## don't remember what this does
+        self.logo = tk.PhotoImage(file = "GitHub-Mark.png")
         self.util = Util()
         self._createWidgets()   
         
@@ -53,27 +56,39 @@ class GUI():
         self.buttonFrame.pack()
         
         self.vgcButton = tk.Button(self.buttonFrame, text = " VGC Games ", font = self.topFont, command = lambda: self.util.getDiagram("vgc"), width = 10)
-        self.vgcButton.pack(side = "top", fill='x')
+        self.vgcButton.pack(fill = 'x')
         
         self.ouButton = tk.Button(self.buttonFrame, text = " OU Games ", font = self.topFont, command = lambda: self.util.getDiagram("ou"), width = 10)
-        self.ouButton.pack(side = "top", fill='x')
+        self.ouButton.pack(fill = 'x')
         
         self.uuButton = tk.Button(self.buttonFrame, text = " UU Games ", font = self.topFont, command = lambda: self.util.getDiagram("uu"), width = 10)
-        self.uuButton.pack(side = "top", fill='x')
+        self.uuButton.pack(fill = 'x')
         
         self.uberButton = tk.Button(self.buttonFrame, text = " Uber Games ", font = self.topFont, command = lambda: self.util.getDiagram("ubers"), width = 10)
-        self.uberButton.pack(side = "top", fill='x')
+        self.uberButton.pack(fill = 'x')
         
         self.infoButton = tk.Button(self.buttonFrame, text = " Information ", font = self.topFont, command = lambda: self._showInfo(), width = 10)
-        self.infoButton.pack(side = "bottom", fill='x')
-        
-        self.canvasFrame = tk.Frame(self.f)
-        self.canvasFrame.pack()
-        self.canvas = tk.Canvas(self.canvasFrame, width = self.boardWidth, height = self.boardHeight)
-        self.canvas.pack()
-      
+        self.infoButton.pack(fill = 'x')
+
     def _showInfo(self):
-        pass
+        hs = tk.Toplevel(width = 300, height = 350)
+        hs.title("    About this application    ")
+        hs.geometry("310x100") # width and height above simply do not work...
+        
+        message = tk.Label(hs, text = "Data courtesy of Smogon. Link to GitHub repository:")
+        message.pack()
+        link = tk.Label(hs, image = self.logo, cursor = "hand2")
+        link.pack()
+        link.bind("<Button-1>", lambda e:  webbrowser.open_new(repositoryLink))
+        # bind to left click
+        
+        '''
+        msg = tk.Label(hs, text = repositoryLink, font = "Consolas 12")
+        msg.pack()
+        '''
+        
+        dismissButton = tk.Button(hs, text = "    Close    ", command = hs.destroy)
+        dismissButton.pack(side = "bottom")
 
 def main():
     root = tk.Tk()

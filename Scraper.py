@@ -2,6 +2,9 @@
 ## For user agent:
 ## https://stackoverflow.com/questions/10606133/sending-user-agent-using-requests-library-in-python
 ## https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+## Older stats:
+## https://www.smogon.com/forums/categories/simulator-archive.424/
+## https://www.smogon.com/forums/threads/official-smogon-university-simulator-statistics-%E2%80%94-january-2013.3478571/
 
 ## TODO
 ## add ubers, uu, dou
