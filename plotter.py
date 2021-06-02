@@ -1,6 +1,3 @@
-## TODO
-## 1 Keep track of last update date, so thst you dont pull all the data with every refresh each time ALMOST DONE
-
 import matplotlib.pyplot as plt
 
 class Plotter():
