@@ -3,8 +3,8 @@
 ## 1 nice layout - color
 
 import tkinter as tk
-import Scraper
-import Plotter
+from scraper import Scraper
+from plotter import Plotter
 import os.path
 import json
 import webbrowser
@@ -13,8 +13,8 @@ repositoryLink = "https://github.com/DimK19/SmogonScraper"
 
 class Util(): ## how they are all connected
     def __init__(self):
-        self.scrape = Scraper.Scraper()
-        self.plotter = Plotter.Plotter()
+        self.scrape = Scraper()
+        self.plotter = Plotter()
 
     def getDiagram(self, format):
         ## format is a string (currently either "vgc", "ou", "uu", or "ubers")
