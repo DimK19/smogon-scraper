@@ -28,7 +28,7 @@ class Scraper():
         self.soup = BS(req.text, "html.parser")
         self.allGames = {}
 
-    def _collectAllLinks(self, format, lastRecordedDate = None):
+    def _collectAllLinks(self, formatName, lastRecordedDate = None):
         self.allGames.clear()
         startDate = None
         ## lrd is in the format "YYYY-MM"
@@ -42,25 +42,26 @@ class Scraper():
             if(link.text == "../" or link.text[7] != '/'): continue
             # prevents double counting of some months that are divided in halves
             month = link.text.rstrip('/') # remove trailing '/'
+            # month is a string in the format yyyy-mm
 
             if(startDate):
                 if(datetime.datetime.strptime(month, "%Y-%m").date() < datetime.datetime.strptime(startDate, "%Y-%m").date()): continue
                 ## reduces the amount of times that getGameCount is called, thus reducing requests
 
             monthURL = Scraper.sourceURL + link.get("href")
-            gamesPlayed = Scraper._getGameCount(monthURL, format)
+            gamesPlayed = Scraper._getGameCount(monthURL, formatName)
             self.allGames.update({month : gamesPlayed})
             ## print(month, ' ', gamesPlayed) # debug
 
     ## for each month link, selects the pre-determined format
     @staticmethod
-    def _getGameCount(monthURL, format):
+    def _getGameCount(monthURL, formatName):
         regex = ""
         ans = 0
-        if(format == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0.txt$|^(.*)battle(spot|stadium)doubles(.*)-0.txt$"
+        if(formatName == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0.txt$|^(.*)battle(spot|stadium)doubles(.*)-0.txt$"
         ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
         ## Notice that there must not be whitespace around the disjunction operator (or any other)
-        elif(format == "ou" or format == "uu" or format == "ubers"): regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + format + ".*-0.txt"
+        elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"): regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0.txt"
         ## this one matches with all ou / uu / uber formats by smogon naming convention
         ## poke|prebank is only necessary for a few months in 2017
 
@@ -70,8 +71,8 @@ class Scraper():
             raise SystemExit(e)
 
         innerSoup = BS(innerReq.text, "html.parser")
-        for format in innerSoup.find_all('a', href = re.compile(regex)):
-            formatURL = monthURL + format.text
+        for frm in innerSoup.find_all('a', href = re.compile(regex)):
+            formatURL = monthURL + frm.text
             ans += Scraper._readFormatFile(formatURL)
 
         return ans
@@ -93,12 +94,12 @@ class Scraper():
 
         return games
 
-    def getData(self, format, lastRecordedDate = None):
-        if(format.lower() not in ["vgc", "ou", "uu", "ubers"]):
+    def getData(self, formatName, lastRecordedDate = None):
+        if(formatName.lower() not in ["vgc", "ou", "uu", "ubers"]):
             print("Error: Invalid format")
             return
 
-        self._collectAllLinks(format, lastRecordedDate)
+        self._collectAllLinks(formatName, lastRecordedDate)
         return self.allGames
 
 

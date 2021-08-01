@@ -9,32 +9,31 @@ import os.path
 import json
 import webbrowser
 
-repositoryLink = "https://github.com/DimK19/SmogonScraper"
+repositoryLink = "https://github.com/DimK19/smogon-scraper"
 
 class Util(): ## how they are all connected
     def __init__(self):
         self.scrape = Scraper()
         self.plotter = Plotter()
 
-    def getDiagram(self, format):
-        ## format is a string (currently either "vgc", "ou", "uu", or "ubers")
-        filename = format.lower() + "_smogon_data.json"
+    def getDiagram(self, formatName):
+        ## formatName is a string (currently either "vgc", "ou", "uu", or "ubers")
+        filename = formatName.lower() + "_smogon_data.json"
         try:
             if(os.path.isfile(filename)):
                 tempo = {}
                 with open(filename, 'r') as f: tempo = json.load(f)
                 lastRecordedMonth = list(tempo.keys())[-1][:7]
-                tempo.update(self.scrape.getData(format, lastRecordedMonth))
+                tempo.update(self.scrape.getData(formatName, lastRecordedMonth))
                 with open(filename, 'w') as f: json.dump(tempo, f)
             else:
-                with open(filename, 'w') as f: json.dump(self.scrape.getData(format), f)
+                with open(filename, 'w') as f: json.dump(self.scrape.getData(formatName), f)
 
             ## Finally get the latest scraped data
             with open(filename, 'r') as f: data = json.load(f)
+            self.plotter.plot(data)
         except FileNotFoundError as e:
             raise(e)
-
-        self.plotter.plot(data)
 
 class GUI():
     def __init__(self, root):
@@ -70,7 +69,7 @@ class GUI():
         self.infoButton.pack(fill = 'x')
 
     def _showInfo(self):
-        hs = tk.Toplevel(width = 300, height = 350)
+        hs = tk.Toplevel(width = 310, height = 100)
         hs.title("    About this application    ")
         hs.geometry("310x100") # width and height above simply do not work...
 
