@@ -58,10 +58,10 @@ class Scraper():
     def _getGameCount(monthURL, formatName):
         regex = ""
         ans = 0
-        if(formatName == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0.txt$|^(.*)battle(spot|stadium)doubles(.*)-0.txt$"
+        if(formatName == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0\.txt$|^(.*)battle(spot|stadium)doubles(.*)-0\.txt$"
         ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
         ## Notice that there must not be whitespace around the disjunction operator (or any other)
-        elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"): regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0.txt"
+        elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"): regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0\.txt"
         ## this one matches with all ou / uu / uber formats by smogon naming convention
         ## poke|prebank is only necessary for a few months in 2017
 

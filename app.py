@@ -19,6 +19,7 @@ class Util(): ## how they are all connected
     def getDiagram(self, formatName):
         ## formatName is a string (currently either "vgc", "ou", "uu", or "ubers")
         filename = formatName.lower() + "_smogon_data.json"
+        ## look for stored version of the file to avoid unnecessary requests
         try:
             if(os.path.isfile(filename)):
                 tempo = {}
