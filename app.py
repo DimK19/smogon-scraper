@@ -39,7 +39,7 @@ class Util(): ## how they are all connected
 class GUI():
     def __init__(self, root):
         self.root = root
-        root.title("Smogon Scraper Application")
+        root.title("Smogon Scraper")
         root.resizable(width = False, height = False) ## does not allow adjusting dimensions of window
         root.geometry("320x200")
         self.topFont = "Arial 15"
@@ -70,11 +70,11 @@ class GUI():
         self.infoButton.pack(fill = 'x')
 
     def _showInfo(self):
-        hs = tk.Toplevel(width = 310, height = 100)
-        hs.title("    About this application    ")
-        hs.geometry("310x100") # width and height above simply do not work...
+        hs = tk.Toplevel(width = 220, height = 180)
+        hs.title("About this program")
+        hs.geometry("280x150") # width and height above simply do not work...
 
-        message = tk.Label(hs, text = "Data courtesy of Smogon. Link to GitHub repository:")
+        message = tk.Label(hs, text = "Data courtesy of Pokemon Showdown and Smogon. Link to GitHub repository:", wraplength = 200)
         message.pack()
         link = tk.Label(hs, image = self.logo, cursor = "hand2")
         link.pack()

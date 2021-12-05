@@ -64,6 +64,9 @@ class Scraper():
         elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"): regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0\.txt"
         ## this one matches with all ou / uu / uber formats by smogon naming convention
         ## poke|prebank is only necessary for a few months in 2017
+        elif(formatName == "bdspdoubles"): regex = r"^gen8bdspbattlefestivaldoubles-0\.txt$"
+        ## only matches with 4v4, ou doubles support not implemented yet
+        ## this option has not been incorporated into the gui yet
 
         try:
             innerReq = requests.get(monthURL, headers = Scraper.headers)
@@ -95,7 +98,8 @@ class Scraper():
         return games
 
     def getData(self, formatName, lastRecordedDate = None):
-        if(formatName.lower() not in ["vgc", "ou", "uu", "ubers"]):
+        ## the clause below is for running scraper by itself, could be written better
+        if(formatName.lower() not in ["vgc", "ou", "uu", "ubers", "bdspdoubles"]):
             print("Error: Invalid format")
             return
 
@@ -107,6 +111,6 @@ class Scraper():
 def main():
     scrape = Scraper()
     # with open("test.txt", 'w') as f: json.dump(scrape.getData("ou", "2020-11"), f)
-    with open("test2.txt", 'w') as f: json.dump(scrape.getData("ou"), f)
+    with open("test5.txt", 'w') as f: json.dump(scrape.getData("bdspdoubles"), f)
 
 if(__name__ == "__main__"): main()
