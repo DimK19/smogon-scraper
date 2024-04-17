@@ -34,15 +34,19 @@ class Scraper():
         ## lrd is in the format "YYYY-MM"
         ## "calculate" next month:
         if(lastRecordedDate):
-            if(lastRecordedDate[-2:] == "12"): ## if last month is December
+            ## if last month is December
+            if(lastRecordedDate[-2:] == "12"):
                 startDate = str(int(lastRecordedDate[:4]) + 1) + "-01"
-            else: startDate = lastRecordedDate[:5] + str(int(lastRecordedDate[-2:]) + 1)
+            else:
+                startDate = lastRecordedDate[:5] + str(int(lastRecordedDate[-2:]) + 1)
 
         for link in self.soup.find_all('a'):
-            if(link.text == "../" or link.text[7] != '/'): continue
-            # prevents double counting of some months that are divided in halves
-            month = link.text.rstrip('/') # remove trailing '/'
-            # month is a string in the format yyyy-mm
+            if(link.text == "../" or link.text[7] != '/'):
+                continue
+                ## prevents double counting of some months that are divided in halves
+            ## remove trailing '/'
+            month = link.text.rstrip('/')
+            ## month is a string in the format yyyy-mm
 
             if(startDate):
                 if(datetime.datetime.strptime(month, "%Y-%m").date() < datetime.datetime.strptime(startDate, "%Y-%m").date()): continue
@@ -51,22 +55,25 @@ class Scraper():
             monthURL = Scraper.sourceURL + link.get("href")
             gamesPlayed = Scraper._getGameCount(monthURL, formatName)
             self.allGames.update({month : gamesPlayed})
-            ## print(month, ' ', gamesPlayed) # debug
+            ## print(month, ' ', gamesPlayed) ## debug
 
     ## for each month link, selects the pre-determined format
     @staticmethod
     def _getGameCount(monthURL, formatName):
         regex = ""
         ans = 0
-        if(formatName == "vgc"): regex = r"^.*vgc[0-9]{4}.*-0\.txt$|^(.*)battle(spot|stadium)doubles(.*)-0\.txt$"
-        ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
-        ## Notice that there must not be whitespace around the disjunction operator (or any other)
-        elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"): regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0\.txt"
-        ## this one matches with all ou / uu / uber formats by smogon naming convention
-        ## poke|prebank is only necessary for a few months in 2017
-        elif(formatName == "bdspdoubles"): regex = r"^gen8bdspbattlefestivaldoubles-0\.txt$"
-        ## only matches with 4v4, ou doubles support not implemented yet
-        ## this option has not been incorporated into the gui yet
+        if(formatName == "vgc"):
+            regex = r"^.*vgc[0-9]{4}.*-0\.txt$|^(.*)battle(spot|stadium)doubles(.*)-0\.txt$"
+            ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
+            ## Notice that there must not be whitespace around the disjunction operator (or any other)
+        elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"):
+            regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0\.txt"
+            ## this one matches with all ou / uu / uber formats by smogon naming convention
+            ## poke|prebank is only necessary for a few months in 2017
+        elif(formatName == "bdspdoubles"):
+            regex = r"^gen8bdspbattlefestivaldoubles-0\.txt$"
+            ## only matches with 4v4, ou doubles support not implemented yet
+            ## this option has not been incorporated into the gui yet
 
         try:
             innerReq = requests.get(monthURL, headers = Scraper.headers)
@@ -92,8 +99,10 @@ class Scraper():
         games = re.findall(r"[0-9]+", firstLine) ## only accept numbers
 
         ## quick fix for a case where the firstLine is not "Total battles: int" but "<html>"
-        if(games): games = int(games[0])
-        else: games = 0
+        if(games):
+            games = int(games[0])
+        else:
+            games = 0
 
         return games
 
@@ -107,10 +116,14 @@ class Scraper():
         return self.allGames
 
 
-# For testing purposes
+## For testing purposes
 def main():
     scrape = Scraper()
-    # with open("test.txt", 'w') as f: json.dump(scrape.getData("ou", "2020-11"), f)
-    with open("test5.txt", 'w') as f: json.dump(scrape.getData("bdspdoubles"), f)
+    '''
+    with open("test.txt", 'w') as f:
+        json.dump(scrape.getData("ou", "2020-11"), f)
+    '''
+    with open("test5.txt", 'w') as f:
+        json.dump(scrape.getData("bdspdoubles"), f)
 
 if(__name__ == "__main__"): main()
