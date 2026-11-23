@@ -9,121 +9,110 @@
 ## TODO
 ## add support for other formats
 
-import requests
 import re
-import json
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import requests
 from bs4 import BeautifulSoup as BS
-import datetime
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+from formats import isCandidate, isKnownFormat
+
+class ScrapeError(Exception):
+    pass
 
 class Scraper():
 
     sourceURL = "https://www.smogon.com/stats/"
     headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"}
+    timeout = (10, 30) ## seconds to connect, seconds to read
+    workers = 2 ## parallel downloads, deliberately low to be polite to the site
 
     def __init__(self):
+        self._local = threading.local()
+        self._monthFiles = {} ## published months do not change, so each listing is only fetched once
+
+    ## one reusable connection per thread, which is about 3 times faster than reconnecting for every file
+    def _session(self):
+        if(not hasattr(self._local, "session")):
+            session = requests.Session()
+            session.headers.update(Scraper.headers)
+            retries = Retry(total = 3, backoff_factor = 1, status_forcelist = (429, 500, 502, 503, 504), raise_on_status = False)
+            session.mount("https://", HTTPAdapter(max_retries = retries))
+            self._local.session = session
+        return self._local.session
+
+    def _get(self, url):
         try:
-            req = requests.get(Scraper.sourceURL, headers = Scraper.headers)
+            response = self._session().get(url, timeout = Scraper.timeout)
+            response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
-        self.soup = BS(req.text, "html.parser")
-        self.allGames = {}
+            raise ScrapeError(f"Could not download {url}: {e}") from e
+        return response
 
-    def _collectAllLinks(self, formatName, lastRecordedDate = None):
-        self.allGames.clear()
-        startDate = None
-        ## lrd is in the format "YYYY-MM"
-        ## "calculate" next month:
-        if(lastRecordedDate):
-            ## if last month is December
-            if(lastRecordedDate[-2:] == "12"):
-                startDate = str(int(lastRecordedDate[:4]) + 1) + "-01"
-            else:
-                startDate = lastRecordedDate[:5] + str(int(lastRecordedDate[-2:]) + 1)
+    ## only plain yyyy-mm folders: the -H1, -H2 and -DLC folders are parts of a month that is already published whole
+    def _getMonths(self):
+        soup = BS(self._get(Scraper.sourceURL).text, "html.parser")
+        return [link.get("href").rstrip('/') for link in soup.find_all('a', href = re.compile(r"^[0-9]{4}-[0-9]{2}/$"))]
 
-        for link in self.soup.find_all('a'):
-            if(link.text == "../" or link.text[7] != '/'):
-                continue
-                ## prevents double counting of some months that are divided in halves
-            ## remove trailing '/'
-            month = link.text.rstrip('/')
-            ## month is a string in the format yyyy-mm
-
-            if(startDate):
-                if(datetime.datetime.strptime(month, "%Y-%m").date() < datetime.datetime.strptime(startDate, "%Y-%m").date()): continue
-                ## reduces the amount of times that getGameCount is called, thus reducing requests
-
-            monthURL = Scraper.sourceURL + link.get("href")
-            gamesPlayed = Scraper._getGameCount(monthURL, formatName)
-            self.allGames.update({month : gamesPlayed})
-            ## print(month, ' ', gamesPlayed) ## debug
-
-    ## for each month link, selects the pre-determined format
-    @staticmethod
-    def _getGameCount(monthURL, formatName):
-        regex = ""
-        ans = 0
-        if(formatName == "vgc"):
-            regex = r"^.*vgc[0-9]{4}.*-0\.txt$|^(.*)battle(spot|stadium)doubles(.*)-0\.txt$"
-            ## the regular expression matches with all vgc formats by smogon naming convention, and all "battlespot/stadiumdoubles".
-            ## Notice that there must not be whitespace around the disjunction operator (or any other)
-        elif(formatName == "ou" or formatName == "uu" or formatName == "ubers"):
-            regex = r"^(gen[0-9]*)*(?:(poke|pre)bank)?" + formatName + ".*-0\.txt"
-            ## this one matches with all ou / uu / uber formats by smogon naming convention
-            ## poke|prebank is only necessary for a few months in 2017
-        elif(formatName == "bdspdoubles"):
-            regex = r"^gen8bdspbattlefestivaldoubles-0\.txt$"
-            ## only matches with 4v4, ou doubles support not implemented yet
-            ## this option has not been incorporated into the gui yet
-
-        try:
-            innerReq = requests.get(monthURL, headers = Scraper.headers)
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
-
-        innerSoup = BS(innerReq.text, "html.parser")
-        for frm in innerSoup.find_all('a', href = re.compile(regex)):
-            formatURL = monthURL + frm.text
-            ans += Scraper._readFormatFile(formatURL)
-
-        return ans
+    ## names of all the rating-0 files in a month, without the "-0.txt" ending
+    def _getSources(self, month):
+        if(month not in self._monthFiles):
+            soup = BS(self._get(f"{Scraper.sourceURL}{month}/").text, "html.parser")
+            self._monthFiles[month] = [link.get("href")[:-len("-0.txt")] for link in soup.find_all('a', href = re.compile(r"-0\.txt$"))]
+        return self._monthFiles[month]
 
     ## opens the txt and reads the first line, which contains
     ## some text and a single number, the total amount of games played that month
-    @staticmethod
-    def _readFormatFile(formatURL):
-        try:
-            lastReq = requests.get(formatURL, headers = Scraper.headers)
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
-        firstLine = lastReq.text.split('\n')[0]
-        games = re.findall(r"[0-9]+", firstLine) ## only accept numbers
+    def _readFormatFile(self, formatURL):
+        firstLine = self._get(formatURL).text.split('\n', 1)[0]
+        games = re.match(r"\s*Total battles:\s*([0-9]+)", firstLine)
+        if(not games):
+            raise ScrapeError(f"Unexpected content in {formatURL}")
+        return int(games.group(1))
 
-        ## quick fix for a case where the firstLine is not "Total battles: int" but "<html>"
-        if(games):
-            games = int(games[0])
-        else:
-            games = 0
+    ## runs inside one worker, so the number of simultaneous requests never exceeds Scraper.workers
+    def _getGameCounts(self, month, formatName):
+        sources = [source for source in self._getSources(month) if isCandidate(formatName, source)]
+        return {source : self._readFormatFile(f"{Scraper.sourceURL}{month}/{source}-0.txt") for source in sources}
 
-        return games
+    ## Downloads every published month not in knownMonths.
+    ## onMonth(month, counts) is called as soon as a month is complete, so progress survives interruptions.
+    ## Returns (data, failedMonths). A failed month is not saved, so it is tried again next time.
+    def getData(self, formatName, knownMonths = (), onMonth = None, onProgress = None):
+        if(not isKnownFormat(formatName)):
+            raise ValueError(f"Invalid format: {formatName}")
 
-    def getData(self, formatName, lastRecordedDate = None):
-        ## the clause below is for running scraper by itself, could be written better
-        if(formatName.lower() not in ["vgc", "ou", "uu", "ubers", "bdspdoubles"]):
-            print("Error: Invalid format")
-            return
-
-        self._collectAllLinks(formatName, lastRecordedDate)
-        return self.allGames
+        months = [month for month in self._getMonths() if month not in knownMonths]
+        data, failedMonths = {}, []
+        with ThreadPoolExecutor(max_workers = Scraper.workers) as pool:
+            futures = {pool.submit(self._getGameCounts, month, formatName) : month for month in months}
+            try:
+                for done, future in enumerate(as_completed(futures), start = 1):
+                    month = futures[future]
+                    try:
+                        data[month] = future.result()
+                    except ScrapeError:
+                        failedMonths.append(month)
+                    else:
+                        if(onMonth):
+                            onMonth(month, data[month])
+                    if(onProgress):
+                        onProgress(done, len(months), month)
+            except BaseException:
+                ## e.g. the disk is full: stop instead of downloading months that cannot be saved
+                for future in futures:
+                    future.cancel()
+                raise
+        return dict(sorted(data.items())), sorted(failedMonths)
 
 
 ## For testing purposes
 def main():
-    scrape = Scraper()
-    '''
-    with open("test.txt", 'w') as f:
-        json.dump(scrape.getData("ou", "2020-11"), f)
-    '''
-    with open("test5.txt", 'w') as f:
-        json.dump(scrape.getData("bdspdoubles"), f)
+    data, failedMonths = Scraper().getData("bdspdoubles")
+    print(data)
+    print("Failed months:", failedMonths)
 
 if(__name__ == "__main__"): main()
